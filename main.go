@@ -9,6 +9,11 @@ import (
 	"strings"
 )
 
+type Book struct {
+	Name   string
+	Status int
+}
+
 func clear() {
 	cmd := exec.Command("clear")
 	cmd.Stdout = os.Stdout
@@ -37,7 +42,77 @@ func getCommand() string {
 	return command
 }
 
-func cmdList(commands []string) {
+func cmdList(books map[string]Book, commands []string) {
+	if len(commands) > 1 && commands[1] != "" {
+		fmt.Println("Illegal parameter")
+	} else {
+		fmt.Println("List of Books ([code] - [name] [status]) : ")
+		ctr := 0
+		for code, book := range books {
+			ctr++
+			status := ""
+			if book.Status == 1 {
+				status = "(rented)"
+			}
+			fmt.Printf("%d. %s - %s %s\n", ctr, code, book.Name, status)
+		}
+		if ctr == 0 { //if no books
+			fmt.Println("This library currently doesn't have any books")
+		}
+	}
+}
+
+func cmdGet(books map[string]Book, commands []string) {
+	if (len(commands) > 2 && commands[2] != "") || len(commands) < 2 {
+		fmt.Println("Illegal parameter")
+	} else {
+		if book, ok := books[commands[1]]; ok {
+			fmt.Printf("Book name : %s\n", book.Name)
+		} else {
+			fmt.Println("Book not found!")
+		}
+	}
+}
+
+func cmdAdd(books map[string]Book, commands []string) map[string]Book {
+	if len(commands) < 3 {
+		fmt.Println("Illegal parameter")
+	} else {
+		// join commands index 2 .. len - 1 to form the name of the book
+		name := strings.Join(commands[2:len(commands)], " ")
+
+		var book Book
+		book.Name = name
+		book.Status = 0
+
+		books[commands[1]] = book
+		fmt.Println("Book added!")
+	}
+
+	return books
+}
+
+func cmdRent(books map[string]Book, commands []string) map[string]Book {
+	if (len(commands) > 2 && commands[2] != "") || len(commands) < 2 {
+		fmt.Println("Illegal parameter")
+	} else {
+		fmt.Println("Process")
+	}
+
+	return books
+}
+
+func cmdReturn(books map[string]Book, commands []string) map[string]Book {
+	if (len(commands) > 2 && commands[2] != "") || len(commands) < 2 {
+		fmt.Println("Illegal parameter")
+	} else {
+		fmt.Println("Process")
+	}
+
+	return books
+}
+
+func cmdRented(books map[string]Book, commands []string) {
 	if len(commands) > 1 && commands[1] != "" {
 		fmt.Println("Illegal parameter")
 	} else {
@@ -45,47 +120,9 @@ func cmdList(commands []string) {
 	}
 }
 
-func cmdGet(commands []string) {
-	if len(commands) > 2 && commands[1] != "" {
-		fmt.Println("Illegal parameter")
-	} else {
-		fmt.Println("Process")
-	}
-}
-
-func cmdAdd(commands []string) {
-	if len(commands) > 3 && commands[1] != "" {
-		fmt.Println("Illegal parameter")
-	} else {
-		fmt.Println("Process")
-	}
-}
-
-func cmdRent(commands []string) {
-	if len(commands) > 2 && commands[1] != "" {
-		fmt.Println("Illegal parameter")
-	} else {
-		fmt.Println("Process")
-	}
-}
-
-func cmdReturn(commands []string) {
-	if len(commands) > 2 && commands[1] != "" {
-		fmt.Println("Illegal parameter")
-	} else {
-		fmt.Println("Process")
-	}
-}
-
-func cmdRented(commands []string) {
-	if len(commands) > 2 && commands[1] != "" {
-		fmt.Println("Illegal parameter")
-	} else {
-		fmt.Println("Process")
-	}
-}
-
 func main() {
+	books := make(map[string]Book)
+
 	for {
 		clear()
 		commandList()
@@ -99,17 +136,17 @@ func main() {
 
 		switch commands[0] {
 		case "list":
-			cmdList(commands)
+			cmdList(books, commands)
 		case "get":
-			cmdGet(commands)
+			cmdGet(books, commands)
 		case "add":
-			cmdAdd(commands)
+			books = cmdAdd(books, commands)
 		case "rent":
-			cmdRent(commands)
+			books = cmdRent(books, commands)
 		case "return":
-			cmdReturn(commands)
+			books = cmdReturn(books, commands)
 		case "rented":
-			cmdRented(commands)
+			cmdRented(books, commands)
 		case "exit":
 			os.Exit(0)
 		default:
