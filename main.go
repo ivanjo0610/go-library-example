@@ -81,6 +81,12 @@ func cmdAdd(books map[string]Book, commands []string) map[string]Book {
 		// join commands index 2 .. len - 1 to form the name of the book
 		name := strings.Join(commands[2:len(commands)], " ")
 
+		// check if code already exist
+		if _, ok := books[commands[1]]; ok {
+			fmt.Println("Failed to add book! Book code already exist!")
+			return books
+		}
+
 		var book Book
 		book.Name = name
 		book.Status = 0
@@ -98,7 +104,7 @@ func cmdRent(books map[string]Book, commands []string) map[string]Book {
 	} else {
 		if book, ok := books[commands[1]]; ok {
 			if book.Status == 1 {
-				fmt.Printf("%s is already rented\n", book.Name)
+				fmt.Printf("Failed to rent book! %s is already rented\n", book.Name)
 			} else {
 				book.Status = 1
 				books[commands[1]] = book
@@ -118,7 +124,7 @@ func cmdReturn(books map[string]Book, commands []string) map[string]Book {
 	} else {
 		if book, ok := books[commands[1]]; ok {
 			if book.Status == 0 {
-				fmt.Printf("%s is not rented\n", book.Name)
+				fmt.Printf("Failed to return book! %s is not rented\n", book.Name)
 			} else {
 				book.Status = 0
 				books[commands[1]] = book
