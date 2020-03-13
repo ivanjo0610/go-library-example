@@ -97,9 +97,13 @@ func cmdRent(books map[string]Book, commands []string) map[string]Book {
 		fmt.Println("Illegal parameter")
 	} else {
 		if book, ok := books[commands[1]]; ok {
-			book.Status = 1
-			books[commands[1]] = book
-			fmt.Printf("%s rented\n", book.Name)
+			if book.Status == 1 {
+				fmt.Printf("%s is already rented\n", book.Name)
+			} else {
+				book.Status = 1
+				books[commands[1]] = book
+				fmt.Printf("%s rented\n", book.Name)
+			}
 		} else {
 			fmt.Println("Book not found!")
 		}
@@ -113,9 +117,13 @@ func cmdReturn(books map[string]Book, commands []string) map[string]Book {
 		fmt.Println("Illegal parameter")
 	} else {
 		if book, ok := books[commands[1]]; ok {
-			book.Status = 0
-			books[commands[1]] = book
-			fmt.Printf("%s returned\n", book.Name)
+			if book.Status == 0 {
+				fmt.Printf("%s is not rented\n", book.Name)
+			} else {
+				book.Status = 0
+				books[commands[1]] = book
+				fmt.Printf("%s returned\n", book.Name)
+			}
 		} else {
 			fmt.Println("Book not found!")
 		}
@@ -128,7 +136,17 @@ func cmdRented(books map[string]Book, commands []string) {
 	if len(commands) > 1 && commands[1] != "" {
 		fmt.Println("Illegal parameter")
 	} else {
-		fmt.Println("Process")
+		fmt.Println("List of Rented Books ([code] - [name]) : ")
+		ctr := 0
+		for code, book := range books {
+			if book.Status == 1 {
+				ctr++
+				fmt.Printf("%d. %s - %s\n", ctr, code, book.Name)
+			}
+		}
+		if ctr == 0 { //if no books rented
+			fmt.Println("Currently no books is rented!")
+		}
 	}
 }
 
