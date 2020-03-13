@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -88,8 +89,13 @@ func main() {
 	for {
 		clear()
 		commandList()
-		command := strings.ReplaceAll(getCommand(), "  ", " ")
-		commands := strings.Split(command, " ")
+		command := getCommand()
+		leadCloseWhitespace := regexp.MustCompile(`^[\s\p{Zs}]+|[\s\p{Zs}]+$`) //whitespace in the beginning and end of string
+		insideWhitespace := regexp.MustCompile(`[\s\p{Zs}]{2,}`)               //more than 1 whitespace
+		cleanCommand := leadCloseWhitespace.ReplaceAllString(command, "")
+		cleanCommand = insideWhitespace.ReplaceAllString(cleanCommand, " ")
+
+		commands := strings.Split(cleanCommand, " ")
 
 		switch commands[0] {
 		case "list":
