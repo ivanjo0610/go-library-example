@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -42,123 +43,115 @@ func getCommand() string {
 	return command
 }
 
-func cmdList(books map[string]Book, commands []string) {
+func cmdList(books map[string]Book, commands []string) error {
 	if len(commands) > 1 && commands[1] != "" {
-		fmt.Println("Illegal parameter")
-	} else {
-		fmt.Println("List of Books ([code] - [name] [status]) : ")
-		ctr := 0
-		for code, book := range books {
-			ctr++
-			status := ""
-			if book.Status == 1 {
-				status = "(Rented)"
-			}
-			fmt.Printf("%d. %s - %s %s\n", ctr, code, book.Name, status)
-		}
-		if ctr == 0 { //if no books
-			fmt.Println("This library currently doesn't have any books")
-		}
+		return errors.New("Illegal parameter")
 	}
+	if len(books) == 0 { //if no books
+		return errors.New("This library currently doesn't have any books")
+	}
+	fmt.Println("List of Books ([code] - [name] [status]) : ")
+	ctr := 0
+	for code, book := range books {
+		ctr++
+		status := ""
+		if book.Status == 1 {
+			status = "(Rented)"
+		}
+		fmt.Printf("%d. %s - %s %s\n", ctr, code, book.Name, status)
+	}
+	return nil
 }
 
-func cmdGet(books map[string]Book, commands []string) {
+func cmdGet(books map[string]Book, commands []string) (string, error) {
 	if (len(commands) > 2 && commands[2] != "") || len(commands) < 2 {
-		fmt.Println("Illegal parameter")
-	} else {
-		if book, ok := books[commands[1]]; ok {
-			fmt.Printf("Book name : %s\n", book.Name)
-		} else {
-			fmt.Println("Book not found!")
-		}
+		return "", errors.New("Illegal parameter")
 	}
+	if book, ok := books[commands[1]]; ok {
+		return book.Name, nil
+	}
+	return "", errors.New("Book not found")
 }
 
-func cmdAdd(books map[string]Book, commands []string) map[string]Book {
+func cmdAdd(books map[string]Book, commands []string) (map[string]Book, error) {
 	if len(commands) < 3 {
-		fmt.Println("Illegal parameter")
-	} else {
-		// join commands index 2 .. len - 1 to form the name of the book
-		name := strings.Join(commands[2:len(commands)], " ")
+		return books, errors.New("Illegal parameter")
+	}
+	// join commands index 2 .. len - 1 to form the name of the book
+	name := strings.Join(commands[2:len(commands)], " ")
 
-		// check if code already exist
-		if _, ok := books[commands[1]]; ok {
-			fmt.Println("Failed to add book! Book code already exist!")
-			return books
+	// check if code already exist
+	if _, ok := books[commands[1]]; ok {
+		return books, errors.New("Failed to add book! Book code already exist")
+	}
+
+	var book Book
+	book.Name = name
+	book.Status = 0
+
+	books[commands[1]] = book
+	return books, nil
+}
+
+func cmdRent(books map[string]Book, commands []string) (map[string]Book, error) {
+	if (len(commands) > 2 && commands[2] != "") || len(commands) < 2 {
+		return books, errors.New("Illegal parameter")
+	}
+
+	book, ok := books[commands[1]]
+	if !ok {
+		return books, errors.New("Book not found")
+	}
+	if book.Status == 1 {
+		errMessage := fmt.Sprintf("Failed to rent book! %s is already rented", book.Name)
+		return books, errors.New(errMessage)
+	}
+	book.Status = 1
+	books[commands[1]] = book
+
+	return books, nil
+}
+
+func cmdReturn(books map[string]Book, commands []string) (map[string]Book, error) {
+	if (len(commands) > 2 && commands[2] != "") || len(commands) < 2 {
+		return books, errors.New("Illegal parameter")
+	}
+	if book, ok := books[commands[1]]; ok {
+		if book.Status == 0 {
+			errMessage := fmt.Sprintf("Failed to return book! %s is not rented", book.Name)
+			return books, errors.New(errMessage)
 		}
-
-		var book Book
-		book.Name = name
 		book.Status = 0
-
 		books[commands[1]] = book
-		fmt.Println("Book added!")
-	}
 
-	return books
+		return books, nil
+	}
+	return books, errors.New("Book not found")
 }
 
-func cmdRent(books map[string]Book, commands []string) map[string]Book {
-	if (len(commands) > 2 && commands[2] != "") || len(commands) < 2 {
-		fmt.Println("Illegal parameter")
-	} else {
-		if book, ok := books[commands[1]]; ok {
-			if book.Status == 1 {
-				fmt.Printf("Failed to rent book! %s is already rented\n", book.Name)
-			} else {
-				book.Status = 1
-				books[commands[1]] = book
-				fmt.Printf("%s rented\n", book.Name)
-			}
-		} else {
-			fmt.Println("Book not found!")
-		}
-	}
-
-	return books
-}
-
-func cmdReturn(books map[string]Book, commands []string) map[string]Book {
-	if (len(commands) > 2 && commands[2] != "") || len(commands) < 2 {
-		fmt.Println("Illegal parameter")
-	} else {
-		if book, ok := books[commands[1]]; ok {
-			if book.Status == 0 {
-				fmt.Printf("Failed to return book! %s is not rented\n", book.Name)
-			} else {
-				book.Status = 0
-				books[commands[1]] = book
-				fmt.Printf("%s returned\n", book.Name)
-			}
-		} else {
-			fmt.Println("Book not found!")
-		}
-	}
-
-	return books
-}
-
-func cmdRented(books map[string]Book, commands []string) {
+func cmdRented(books map[string]Book, commands []string) error {
 	if len(commands) > 1 && commands[1] != "" {
-		fmt.Println("Illegal parameter")
-	} else {
-		fmt.Println("List of Rented Books ([code] - [name]) : ")
-		ctr := 0
-		for code, book := range books {
-			if book.Status == 1 {
-				ctr++
-				fmt.Printf("%d. %s - %s\n", ctr, code, book.Name)
+		return errors.New("Illegal parameter")
+	}
+	ctr := 0
+	for code, book := range books {
+		if book.Status == 1 {
+			if ctr == 1 { //header for the first (in if so it is not written if no books)
+				fmt.Println("List of Rented Books ([code] - [name]) : ")
 			}
-		}
-		if ctr == 0 { //if no books rented
-			fmt.Println("Currently no books is rented!")
+			ctr++
+			fmt.Printf("%d. %s - %s\n", ctr, code, book.Name)
 		}
 	}
+	if ctr == 0 { //if no books rented
+		return errors.New("Currently no books is rented")
+	}
+	return nil
 }
 
 func main() {
 	books := make(map[string]Book)
-
+	var err error
 	for {
 		clear()
 		commandList()
@@ -172,17 +165,43 @@ func main() {
 
 		switch commands[0] {
 		case "list":
-			cmdList(books, commands)
+			err = cmdList(books, commands)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
 		case "get":
-			cmdGet(books, commands)
+			name, err := cmdGet(books, commands)
+			if err != nil {
+				fmt.Println(err.Error())
+			} else {
+				fmt.Printf("Book name : %s\n", name)
+			}
 		case "add":
-			books = cmdAdd(books, commands)
+			books, err = cmdAdd(books, commands)
+			if err != nil {
+				fmt.Println(err.Error())
+			} else {
+				fmt.Println("Book added!")
+			}
 		case "rent":
-			books = cmdRent(books, commands)
+			books, err = cmdRent(books, commands)
+			if err != nil {
+				fmt.Println(err.Error())
+			} else {
+				fmt.Printf("%s rented\n", books[commands[1]].Name)
+			}
 		case "return":
-			books = cmdReturn(books, commands)
+			books, err = cmdReturn(books, commands)
+			if err != nil {
+				fmt.Println(err.Error())
+			} else {
+				fmt.Printf("%s returned\n", books[commands[1]].Name)
+			}
 		case "rented":
-			cmdRented(books, commands)
+			err = cmdRented(books, commands)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
 		case "exit":
 			os.Exit(0)
 		default:
